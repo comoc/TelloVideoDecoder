@@ -15,23 +15,15 @@
 using namespace std;
 
 
-extern void TelloVideoDecoder_Open();
-extern void TelloVideoDecoder_Close();
-extern void TelloVideoDecoder_ModifyTexturePixels(void* data, int width, int height);
 
 extern "C"
 {
-
-	void debug_log(const char* msg)
-	{
-#if defined(_WIN32) && defined(_DEBUG)
-		OutputDebugStringA(msg);
-		OutputDebugStringA("\r\n");
-#endif
-		cout << msg << endl;
-	}
-
+	struct TelloVideoDecoderContext;
+	TelloVideoDecoderContext* TelloVideoDecoder_Open();
+	void TelloVideoDecoder_Close(TelloVideoDecoderContext* ctx);
+	void TelloVideoDecoder_ModifyTexturePixels(TelloVideoDecoderContext* ctx, void* data, int width, int height);
 }
+	
 
 
 // --------------------------------------------------------------------------
@@ -60,6 +52,8 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
 static IUnityInterfaces* s_UnityInterfaces = NULL;
 static IUnityGraphics* s_Graphics = NULL;
 
+static TelloVideoDecoderContext* s_TelloContext = NULL;
+
 extern "C" void	UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces)
 {
 	s_UnityInterfaces = unityInterfaces;
@@ -78,12 +72,12 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
 
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginEnable()
 {
-	TelloVideoDecoder_Open();
+	s_TelloContext = TelloVideoDecoder_Open();
 }
 
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginDisable()
 {
-	TelloVideoDecoder_Close();
+	TelloVideoDecoder_Close(s_TelloContext);
 }
 
 #if UNITY_WEBGL
@@ -146,7 +140,7 @@ static void ModifyTexturePixels()
 
 	unsigned char* dst = (unsigned char*)textureDataPtr;
 #if 1
-	TelloVideoDecoder_ModifyTexturePixels(dst, width, height);
+	TelloVideoDecoder_ModifyTexturePixels(s_TelloContext, dst, width, height);
 #else
 	memset(dst, 0x0f, textureRowPitch * height);
 #endif
